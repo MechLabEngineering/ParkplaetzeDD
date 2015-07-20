@@ -7,7 +7,7 @@
 # 
 # Read about it here: http://mechlab-engineering.de/2015/03/vorhersage-der-parkhausbelegung-mit-offenen-daten/
 
-# In[1]:
+# In[158]:
 
 import pandas as pd
 import numpy as np
@@ -31,7 +31,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # `http://ubahn.draco.uberspace.de/opendata/dump/parken_dump.csv`
 # 
 
-# In[2]:
+# In[159]:
 
 #!rm -rf parken_dump.csv
 #!wget http://ubahn.draco.uberspace.de/opendata/dump/parken_dump.csv
@@ -39,26 +39,26 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 # ### Read the data and process it
 
-# In[3]:
+# In[160]:
 
 data = pd.read_csv('parken_dump.csv', encoding='latin1')
 
 
 # Calc the occupation ([ger] Belegung)
 
-# In[4]:
+# In[161]:
 
 data['Belegung'] = 100.0-data['free']/data['count']*100.0
 
 
 # Pivot the data
 
-# In[5]:
+# In[162]:
 
 ppDD = data.pivot(index='time', columns='name', values='Belegung')
 
 
-# In[6]:
+# In[163]:
 
 # Define index and names
 ppDD.index = pd.DatetimeIndex(ppDD.index)
@@ -70,13 +70,13 @@ print('Daten von %s/%s bis %s/%s' % (ppDD.index[0].month, ppDD.index[0].year, pp
 
 # ### Wir nehmen nur von 04/2014 - 04/2015
 
-# In[7]:
+# In[164]:
 
 # Wir nehmen nur ein gesamtes Jahr
 ppDD = ppDD['2014-04-14':'2015-04-13']
 
 
-# In[8]:
+# In[165]:
 
 # format the percent without digits
 ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
@@ -85,21 +85,26 @@ ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
 ppDD = ppDD.applymap(lambda x: min(max(x, 0.0), 100.0))
 
 
-# In[9]:
+# In[166]:
 
 ppDD.tail(3)
 
 
 # # Predict for the `Centrum-Galerie` Dresden
 
-# In[10]:
+# In[167]:
 
-centrumGalerie = ppDD[['Centrum-Galerie']].dropna()
+parkingspot = 'Centrum-Galerie'
+
+
+# In[168]:
+
+centrumGalerie = ppDD[[parkingspot]].dropna()
 
 
 # Ok, take a look at the TimeSeries
 
-# In[11]:
+# In[169]:
 
 # function to plot timeseries with weekend
 def plotbelegung(df, which, fromdate, todate):
@@ -127,9 +132,9 @@ def plotbelegung(df, which, fromdate, todate):
     return plt
 
 
-# In[12]:
+# In[170]:
 
-plotbelegung(centrumGalerie, 'Centrum-Galerie', '2014-12', '2014-12')
+plotbelegung(centrumGalerie, parkingspot, '2014-12', '2014-12')
 
 
 # # Let's do some Machine Learning on that
@@ -138,9 +143,9 @@ plotbelegung(centrumGalerie, 'Centrum-Galerie', '2014-12', '2014-12')
 # 
 # Label ist die Belegung des Parkhauses
 
-# In[13]:
+# In[171]:
 
-centrumGalerie['Belegung'] = centrumGalerie['Centrum-Galerie']#.apply(lambda x: round(x/10.0)*10.0)
+centrumGalerie['Belegung'] = centrumGalerie[parkingspot]#.apply(lambda x: round(x/10.0)*10.0)
 
 
 # ## Features
@@ -164,7 +169,7 @@ centrumGalerie['Belegung'] = centrumGalerie['Centrum-Galerie']#.apply(lambda x: 
 # 
 # Es ist wichtig, ob Montag oder Samstag oder Sonntag ist.
 
-# In[14]:
+# In[172]:
 
 centrumGalerie['Wochentag'] = centrumGalerie.index.dayofweek
 
@@ -173,7 +178,7 @@ centrumGalerie['Wochentag'] = centrumGalerie.index.dayofweek
 # 
 # Dann ist es natürlich extrem wichtig, ob es in der Nacht ist oder tagsüber.
 
-# In[15]:
+# In[173]:
 
 centrumGalerie['Uhrzeit'] = centrumGalerie.index.hour*60.0 + centrumGalerie.index.minute
 
@@ -182,12 +187,12 @@ centrumGalerie['Uhrzeit'] = centrumGalerie.index.hour*60.0 + centrumGalerie.inde
 # 
 # Waren in Dresden: 13. April 2014, 5. Oktober 2014, 7. Dezember 2014, 21. Dezember 2014
 
-# In[16]:
+# In[174]:
 
 offeneSonntage = pd.to_datetime(['2014-04-13','2014-10-05','2014-12-07','2014-12-21'])
 
 
-# In[17]:
+# In[175]:
 
 def isoffenersonntag(serie):
     isoffen = False
@@ -201,13 +206,13 @@ def isoffenersonntag(serie):
         return 0
 
 
-# In[18]:
+# In[176]:
 
 sonntagsseries = pd.Series(centrumGalerie.index, name='offeneSonntage', index=centrumGalerie.index).apply(isoffenersonntag)
 centrumGalerie['offenerSonntag'] = sonntagsseries
 
 
-# In[19]:
+# In[177]:
 
 centrumGalerie[centrumGalerie.offenerSonntag==1].head(5)
 
@@ -218,21 +223,21 @@ centrumGalerie[centrumGalerie.offenerSonntag==1].head(5)
 # 
 # Get them from http://www.feiertage.net
 
-# In[20]:
+# In[178]:
 
 feiertage = pd.read_csv('Sachsen2014.csv', index_col=0, parse_dates=True, sep=';', dayfirst=True)
 feiertage = feiertage.append(pd.read_csv('Sachsen2015.csv', index_col=0, parse_dates=True, sep=';', dayfirst=True))
 feiertage = feiertage.append(pd.read_csv('Sachsen2016.csv', index_col=0, parse_dates=True, sep=';', dayfirst=True))
 
 
-# In[21]:
+# In[179]:
 
 feiertage
 
 
 # Mit [numpy.busday_count](http://docs.scipy.org/doc/numpy/reference/generated/numpy.busday_count.html) bekommen wir die Anzahl der Werktage bis zum nächsten Feiertag, weil die Leute ja vor einem langen Wochenende immer noch mal richtig einkaufen gehen.
 
-# In[22]:
+# In[180]:
 
 def shoppingdaystonextfeiertag(df):
     diffs = []
@@ -247,13 +252,13 @@ def shoppingdaystonextfeiertag(df):
         return 100 # wenn kein Feiertag gefunden
 
 
-# In[23]:
+# In[181]:
 
 feiertagseries = pd.Series(centrumGalerie.index, name='Feiertage', index=centrumGalerie.index).apply(shoppingdaystonextfeiertag)
 centrumGalerie['bisFeiertag'] = feiertagseries
 
 
-# In[24]:
+# In[182]:
 
 def shoppingdaysafterfeiertag(df):
     diffs = []
@@ -268,7 +273,7 @@ def shoppingdaysafterfeiertag(df):
         return 100 # wenn kein Feiertag gefunden
 
 
-# In[25]:
+# In[183]:
 
 feiertagseries = pd.Series(centrumGalerie.index, name='Feiertage', index=centrumGalerie.index).apply(shoppingdaysafterfeiertag)
 centrumGalerie['nachFeiertag'] = feiertagseries
@@ -278,7 +283,7 @@ centrumGalerie['nachFeiertag'] = feiertagseries
 # 
 # Schulferien Sachsen: http://www.schulferien.org/Sachsen/sachsen.html
 
-# In[26]:
+# In[184]:
 
 schulferien = [['2014-02-17','2014-03-01'],
                 ['2014-04-18','2014-04-26'],
@@ -292,7 +297,7 @@ schulferien = [['2014-02-17','2014-03-01'],
                 ['2015-12-21','2016-01-02']]
 
 
-# In[27]:
+# In[185]:
 
 def isschulferien(series):
     now = series.date()
@@ -311,7 +316,7 @@ def isschulferien(series):
         return 0
 
 
-# In[28]:
+# In[186]:
 
 ferienseries = pd.Series(centrumGalerie.index, name='Schulferien', index=centrumGalerie.index).apply(isschulferien)
 centrumGalerie['Schulferien'] = ferienseries
@@ -319,12 +324,12 @@ centrumGalerie['Schulferien'] = ferienseries
 
 # ### Weihnachten
 
-# In[29]:
+# In[187]:
 
 weihnachten = pd.to_datetime(['2014-12-25','2014-12-26','2015-12-25','2015-12-26'])
 
 
-# In[30]:
+# In[188]:
 
 def isweihnachten(serie):
     isweihnacht = False
@@ -338,7 +343,7 @@ def isweihnachten(serie):
         return 0
 
 
-# In[31]:
+# In[189]:
 
 weihnachtsseries = pd.Series(centrumGalerie.index, name='offeneSonntage', index=centrumGalerie.index).apply(isweihnachten)
 centrumGalerie['Weihnachten'] = weihnachtsseries
@@ -346,14 +351,14 @@ centrumGalerie['Weihnachten'] = weihnachtsseries
 
 # ### Check
 
-# In[32]:
+# In[190]:
 
 centrumGalerie.groupby([centrumGalerie.index.year, centrumGalerie.index.month, centrumGalerie.index.day]).first()
 
 
 # ### Featurevector
 
-# In[33]:
+# In[191]:
 
 featurevector = ['Wochentag','Uhrzeit','Schulferien','offenerSonntag','bisFeiertag','nachFeiertag','Weihnachten']
 
@@ -364,26 +369,26 @@ featurevector = ['Wochentag','Uhrzeit','Schulferien','offenerSonntag','bisFeiert
 # 
 # ## Train some Machine Learning Classifiers
 
-# In[34]:
+# In[192]:
 
 labels = centrumGalerie['Belegung'].values
 np.shape(labels)
 
 
-# In[35]:
+# In[193]:
 
 features = centrumGalerie[featurevector].values
 np.shape(features)
 
 
-# In[36]:
+# In[194]:
 
 from sklearn.cross_validation import train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import accuracy_score, confusion_matrix, r2_score
 
 
-# In[37]:
+# In[195]:
 
 # Import some Models to cycle through
 from sklearn.neighbors import KNeighborsClassifier
@@ -397,19 +402,19 @@ from sklearn.tree import DecisionTreeClassifier
 # 
 # To get an accuracy score, we need to split our dataset in a training and a test set. We train with the training set and test the model later with the part of the test set.
 
-# In[38]:
+# In[196]:
 
 features_train, features_test, labels_train, labels_test = train_test_split(features, labels, test_size=0.2, random_state=42)
 
 
-# In[39]:
+# In[197]:
 
 np.shape(labels_test)
 
 
 # ### Test some models with standard parameter set
 
-# In[40]:
+# In[198]:
 
 for Model in [KNeighborsClassifier, GaussianNB, RandomForestClassifier, DecisionTreeClassifier, DecisionTreeRegressor]:
 
@@ -435,12 +440,12 @@ for Model in [KNeighborsClassifier, GaussianNB, RandomForestClassifier, Decision
 
 # Because it is a regression (output of the prediction are integer) it might fit the data better than a classifier. So we test the the predicted labels with the test labels with the $R^2$ score (coefficient of determination).
 
-# In[41]:
+# In[247]:
 
 print('max_depth\tmin_samples_leaf\tR2_score (higher is better)')
 maxscore = 0.8
-for md in range(10, 50):
-    for mins in range(40, 60):
+for md in range(10, 30):
+    for mins in range(40, 50):
         classifier = DecisionTreeRegressor(max_depth=md, min_samples_leaf=mins).fit(features_train, labels_train)
         labels_predict = classifier.predict(features_test)
         #labels_rounded = [round(label/10.0)*10.0 for label in labels_predict]
@@ -454,16 +459,16 @@ for md in range(10, 50):
 
 # ## Model
 
-# In[42]:
+# In[248]:
 
-classifier = DecisionTreeRegressor(max_depth=21, min_samples_leaf=40).fit(features_train, labels_train)
+classifier = DecisionTreeRegressor(max_depth=16, min_samples_leaf=40).fit(features_train, labels_train)
 
 
 # ### Overfit test
 # 
 # One can check for overfitting by just test the model with the training features. If the score is very high (and the score with the test features is low), it is likely, that the model is overfitted.
 
-# In[43]:
+# In[249]:
 
 # Let's check if we overfit. If, the accuracy with the training set is very high, with the test set very low.
 labels_predict_overfittest = classifier.predict(features_train).astype('int')
@@ -476,31 +481,31 @@ if score>0.4:
 
 # ### What is the most important feature for the model
 
-# In[44]:
+# In[250]:
 
 importances = classifier.feature_importances_
 
 
-# In[45]:
+# In[251]:
 
 featureimportance = pd.DataFrame(index=featurevector, data=importances, columns=['Importance']).sort('Importance', ascending=False).plot(kind='bar', rot=20)
 
 
 # Obviously it is the time of the day (`Minuten` since midnight), the calender week, the days until the next holiday (because people tend to go shopping if the weekend is long) and for sure the day of the week (because saturday is shopping day!).
 
-# In[46]:
+# In[252]:
 
 labels_predict = classifier.predict(features_test).astype('int')
 
 
-# In[47]:
+# In[253]:
 
 r2_score(labels_test, labels_predict)
 
 
 # ### Let's take a look at the confusion matrix
 
-# In[48]:
+# In[254]:
 
 cm = confusion_matrix(labels_predict, labels_test)
 
@@ -516,7 +521,7 @@ plt.xlabel(u'Geschätzte Belegung in %')
 # 
 # Here we predict it for the whole dataset
 
-# In[49]:
+# In[255]:
 
 def predictBelegung(df):
     features = df[featurevector].values
@@ -526,29 +531,29 @@ def predictBelegung(df):
 
 # Fire it on the whole Dataset
 
-# In[50]:
+# In[256]:
 
 centrumGalerie['Vorhersage'] = centrumGalerie.apply(predictBelegung, axis=1)
 
 
-# In[51]:
+# In[257]:
 
 centrumGalerie.head(5)
 
 
-# In[52]:
+# In[258]:
 
 centrumGalerie['Vorhersage'] = pd.rolling_mean(centrumGalerie['Vorhersage'], 8).shift(-4)
 
 
-# In[53]:
+# In[259]:
 
-plotbelegung(centrumGalerie, ['Centrum-Galerie','Vorhersage'], '2014-07-07', '2014-07-20')
+plotbelegung(centrumGalerie, [parkingspot, 'Vorhersage'], '2014-07-07', '2014-07-20')
 
 
 # ## Let's test some predictions
 
-# In[54]:
+# In[260]:
 
 featurevector
 
@@ -563,7 +568,7 @@ featurevector
 # * 3 Tage nach einem Feiertag
 # * kein Weihnachten
 
-# In[55]:
+# In[261]:
 
 print('%i%% Belegung' % classifier.predict([5, 15*60, 1, 0, 5, 3, 0]))
 
@@ -578,14 +583,14 @@ print('%i%% Belegung' % classifier.predict([5, 15*60, 1, 0, 5, 3, 0]))
 # * 1 Tag nach einem Feiertag
 # * kein Weihnachten
 
-# In[56]:
+# In[262]:
 
 print('%i%% Belegung' % classifier.predict([6, 15*60, 0, 0, 3, 10, 0]))
 
 
 # # If we want to predict the future, let's create it
 
-# In[66]:
+# In[263]:
 
 future = pd.DataFrame(index=pd.date_range('2015-06-01', '2016-01-01', freq='30Min'))
 future.index.name = 'date'
@@ -606,12 +611,12 @@ future['Weihnachten'] = weihnachtsseries
 
 # ### And predict the occupancy of the parking-space `Centrum-Galerie` with the future features
 
-# In[67]:
+# In[264]:
 
 future['Vorhersage'] = future.apply(predictBelegung, axis=1)
 
 
-# In[68]:
+# In[265]:
 
 future['Vorhersage'] = pd.rolling_mean(future['Vorhersage'], 8).shift(-4)
 
@@ -621,31 +626,31 @@ future['Vorhersage'] = pd.rolling_mean(future['Vorhersage'], 8).shift(-4)
 
 
 
-# In[72]:
+# In[266]:
 
 plotbelegung(future, ['Vorhersage'], '2015-12-10', '2015-12-31')
-plt.savefig('Centrum-Galerie-Belegung-Vorhersage-2015.png', bbox_inches='tight', dpi=150)
+plt.savefig('%s-Belegung-Vorhersage-2015.png' % parkingspot, bbox_inches='tight', dpi=150)
 
 
 # ### Save as .csv
 
-# In[73]:
+# In[267]:
 
 future.dropna(inplace=True)
-future['Vorhersage'].to_csv('Centrum-Galerie-Belegung-Vorhersage-2015-30min.csv', header=['percentage'] ,float_format='%i')
+future['Vorhersage'].to_csv('%s-Belegung-Vorhersage-2015-30min.csv' % parkingspot, header=['percentage'] ,float_format='%i')
 
 
 # ### Save as sqlite Database
 
-# In[74]:
+# In[268]:
 
 import sqlite3 as db
 
 
-# In[75]:
+# In[269]:
 
-con = db.connect('./Centrum-Galerie-Belegung-Vorhersage-2015.db')
-future['Vorhersage'].to_sql('CentrumGalerieVorhersage2015', con, if_exists='replace')
+con = db.connect('./%s-Belegung-Vorhersage-2015.db' % parkingspot)
+future['Vorhersage'].to_sql('%sVorhersage2015' % parkingspot, con, if_exists='replace')
 
 
 # ## Save the Classifier for later use
@@ -655,10 +660,10 @@ future['Vorhersage'].to_sql('CentrumGalerieVorhersage2015', con, if_exists='repl
 # `with open('classifier.pkl', 'rb') as fid:
 #     classifier = pickle.load(fid)`
 
-# In[76]:
+# In[270]:
 
 import pickle
-with open('./Classifier/DecisionTreeRegressor-CentrumGalerie.pkl', 'wb') as fid:
+with open('./Classifier/DecisionTreeRegressor-%s.pkl' % parkingspot, 'wb') as fid:
     pickle.dump(classifier, fid)  
 
 
