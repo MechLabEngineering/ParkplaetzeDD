@@ -8,6 +8,10 @@
 # The city of Dresden has an excellent traffic monitoring and guiding system ([VAMOS](https://www.youtube.com/watch?v=zfWvjmlTXG4)), which also measures the occupancy rate of city parking spaces. The data is pushed to the [city's website](http://www.dresden.de/freie-parkplaetze/), from which it has been scraped by [Dresden's Open Data activists](http://codefor.de/projekte/2014-04-19-dd-freieparkplaetze.html) for the past year.
 # 
 # ![OpenData Scraping](http://mechlab-engineering.de/wordpress/wp-content/uploads/2015/03/DataFlow.png)
+# 
+# 
+# 
+# ## Get the data and code at `git clone https://github.com/MechLabEngineering/ParkplaetzeDD`
 
 # In[49]:
 

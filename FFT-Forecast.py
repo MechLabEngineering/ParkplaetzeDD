@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[370]:
+# In[55]:
 
 import numpy as np
 import pandas as pd
@@ -10,17 +10,17 @@ get_ipython().magic(u'matplotlib inline')
 import matplotlib.pyplot as plt
 
 
-# In[371]:
+# In[56]:
 
 data = pd.read_csv('parken_dump.csv', encoding='latin1')
 
 
-# In[372]:
+# In[57]:
 
 data['Belegung'] = 100.0-data['free']/data['count']*100.0
 
 
-# In[373]:
+# In[58]:
 
 ppDD = data.pivot(index='time', columns='name', values='Belegung')
 
@@ -32,13 +32,13 @@ ppDD.columns.name = 'Parkplatz'
 print('Daten von %s/%s bis %s/%s' % (ppDD.index[0].month, ppDD.index[0].year, ppDD.index[-1].month, ppDD.index[-1].year)) 
 
 
-# In[374]:
+# In[59]:
 
 # Wir nehmen nur ein gesamtes Jahr
 ppDD = ppDD['2015-02-02':'2015-03-01']
 
 
-# In[375]:
+# In[60]:
 
 # format the percent without digits
 ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
@@ -47,33 +47,40 @@ ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
 ppDD = ppDD.applymap(lambda x: min(max(x, 0.0), 100.0))
 
 
-# In[376]:
+# In[61]:
 
-centrumGalerie = ppDD[['Centrum-Galerie']].dropna()
-
-
-# In[377]:
-
-hann = np.hanning(len(centrumGalerie.values))
+for p in ppDD.columns:
+    print p
 
 
-# In[378]:
+# In[62]:
 
-centrumGalerie.values.ravel()
-
-
-# In[379]:
-
-Y = np.fft.fft(hann*centrumGalerie.values.ravel())
+parkplatz = 'Centrum-Galerie'
+parkplatzdf = ppDD[[parkplatz]].dropna()
 
 
-# In[380]:
+# In[63]:
+
+hann = np.hanning(len(parkplatzdf.values))
+
+
+# In[64]:
+
+parkplatzdf.values.ravel()
+
+
+# In[65]:
+
+Y = np.fft.fft(hann*parkplatzdf.values.ravel())
+
+
+# In[66]:
 
 N = len(Y)/2+1
 fa = 1.0/(15.0*60.0) # every 15 minutes
 
 
-# In[381]:
+# In[67]:
 
 X = np.linspace(0, fa/2, N, endpoint=True)
 
@@ -83,30 +90,30 @@ X = np.linspace(0, fa/2, N, endpoint=True)
 
 
 
-# In[382]:
+# In[68]:
 
 plt.plot(X, 2.0*np.abs(Y[:N])/N)
 plt.xlabel('Frequency ($Hz$)')
 plt.ylabel('Belegung [%]')
 
 
-# In[383]:
+# In[69]:
 
 Xp = 1.0/X # in seconds
 Xph= Xp/(60.0*60.0) # in hours
 
 
-# In[384]:
+# In[70]:
 
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10,5))
 plt.bar(Xph, 2.0*np.abs(Y[:N])/N)
 plt.xticks([12, 24, 33, 84, 168])
 plt.xlim(0, 168)
 #plt.ylim(0, 1500)
 plt.xlabel('Periode ($h$)')
 plt.ylabel('Auslastung (%)')
-plt.title('#ParkenDD - FFT(Belegung Februar 2015)')
-#plt.savefig('FFT-Periode.png',bbox_inches='tight', dpi=72)
+plt.title('FFT(Belegung \'%s\')' % parkplatz)
+plt.savefig('FFT-Periode-%s.png' % parkplatz.strip(),bbox_inches='tight', dpi=72)
 
 
 # * 12h day/night rythm
