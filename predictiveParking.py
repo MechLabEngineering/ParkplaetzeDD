@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python#!/usr/bin/python
 # coding: utf-8
 
 # # Machine Learning on Parking Space Occupancy in Dresden
@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import time
 
-get_ipython().magic('matplotlib inline')
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 
@@ -38,20 +38,37 @@ name = 'Centrum Galerie'
 # In[3]:
 
 
-data = pd.read_csv('dresdencentrumgalerie-2016.csv', names=['Datum','free'], index_col='Datum', parse_dates=True)
-data.sort_index(inplace=True)
-data.tail()
+url_2016 = 'https://parkendd.de/dumps/dresdencentrumgalerie-2016.csv'
+url_2017 = 'https://parkendd.de/dumps/dresdencentrumgalerie-2017.csv'
+url_2018 = 'https://parkendd.de/dumps/dresdencentrumgalerie-2018.csv'
 
 
 # In[4]:
 
 
-data.plot()
+data_2016 = pd.read_csv(url_2016, names=['Datum','free'], index_col='Datum', parse_dates=True)
+data_2017 = pd.read_csv(url_2017, names=['Datum','free'], index_col='Datum', parse_dates=True)
+data_2018 = pd.read_csv(url_2018, names=['Datum','free'], index_col='Datum', parse_dates=True)
+
+data = pd.concat([data_2016, data_2017, data_2018])
+data.sort_index(inplace=True)
+
+
+# In[5]:
+
+
+data.plot(figsize=(16,6));
+
+
+# In[6]:
+
+
+data.dropna(inplace=True)
 
 
 # Calc the occupation ([ger] Belegung)
 
-# In[5]:
+# In[7]:
 
 
 data['Belegung'] = 100.0-(data.free/950.0*100.0)
@@ -59,11 +76,17 @@ data['Belegung'] = data['Belegung'].astype(int)
 data.drop('free', axis=1, inplace=True)
 
 
+# In[ ]:
+
+
+
+
+
 # # Predict for the `parkingspot`
 
 # Ok, take a look at the TimeSeries
 
-# In[6]:
+# In[8]:
 
 
 # function to plot timeseries with weekend
@@ -94,10 +117,10 @@ def plotbelegung(df, which, fromdate, todate):
     return plt
 
 
-# In[7]:
+# In[9]:
 
 
-plotbelegung(data['Belegung'], name, '2016-12', '2016-12')
+plotbelegung(data['Belegung'], name, '2017-12', '2017-12');
 
 
 # # Let's do some Machine Learning on that
@@ -123,7 +146,7 @@ plotbelegung(data['Belegung'], name, '2016-12', '2016-12')
 # 
 # Es ist wichtig, ob Montag oder Samstag oder Sonntag ist.
 
-# In[8]:
+# In[10]:
 
 
 data['Wochentag'] = data.index.dayofweek
@@ -133,7 +156,7 @@ data['Wochentag'] = data.index.dayofweek
 # 
 # Dann ist es natürlich extrem wichtig, ob es in der Nacht ist oder tagsüber.
 
-# In[9]:
+# In[11]:
 
 
 data['Uhrzeit'] = data.index.hour*60.0 + data.index.minute
@@ -141,13 +164,13 @@ data['Uhrzeit'] = data.index.hour*60.0 + data.index.minute
 
 # ### Verkaufsoffener Sonntage
 
-# In[10]:
+# In[12]:
 
 
-offeneSonntage = pd.to_datetime(['2016-12-04'])
+offeneSonntage = pd.to_datetime(['2016-12-04', '2017-12-10', '2018-12-09'])
 
 
-# In[11]:
+# In[13]:
 
 
 def isoffenersonntag(serie):
@@ -162,14 +185,14 @@ def isoffenersonntag(serie):
         return 0
 
 
-# In[12]:
+# In[14]:
 
 
 sonntagsseries = pd.Series(data.index, name='offeneSonntage', index=data.index).apply(isoffenersonntag)
 data['offenerSonntag'] = sonntagsseries
 
 
-# In[13]:
+# In[15]:
 
 
 data[data.offenerSonntag==1].head(5)
@@ -181,15 +204,15 @@ data[data.offenerSonntag==1].head(5)
 # 
 # Get them from http://www.feiertage.net/frei-tage.php
 
-# In[14]:
+# In[16]:
 
 
 feiertage = pd.DataFrame()
-for year in range(2016, 2019):
+for year in range(2016, 2020):
     feiertage = feiertage.append(pd.read_csv('Sachsen%i.csv' % year, index_col=0, parse_dates=True, sep=';', dayfirst=True))
 
 
-# In[15]:
+# In[17]:
 
 
 feiertage
@@ -197,7 +220,7 @@ feiertage
 
 # Mit [numpy.busday_count](http://docs.scipy.org/doc/numpy/reference/generated/numpy.busday_count.html) bekommen wir die Anzahl der Werktage bis zum nächsten Feiertag, weil die Leute ja vor einem langen Wochenende immer noch mal richtig einkaufen gehen.
 
-# In[16]:
+# In[18]:
 
 
 def shoppingdaystonextfeiertag(df):
@@ -213,14 +236,14 @@ def shoppingdaystonextfeiertag(df):
         return 100 # wenn kein Feiertag gefunden
 
 
-# In[17]:
+# In[19]:
 
 
 feiertagseries = pd.Series(data.index, name='Feiertage', index=data.index).apply(shoppingdaystonextfeiertag)
 data['bisFeiertag'] = feiertagseries
 
 
-# In[18]:
+# In[20]:
 
 
 def shoppingdaysafterfeiertag(df):
@@ -236,7 +259,7 @@ def shoppingdaysafterfeiertag(df):
         return 100 # wenn kein Feiertag gefunden
 
 
-# In[19]:
+# In[21]:
 
 
 feiertagseries = pd.Series(data.index, name='Feiertage', index=data.index).apply(shoppingdaysafterfeiertag)
@@ -247,21 +270,29 @@ data['nachFeiertag'] = feiertagseries
 # 
 # Schulferien Sachsen: http://www.schulferien.org/Sachsen/sachsen.html
 
-# In[20]:
+# In[22]:
 
 
 schulferien = [['2016-02-08','2016-02-19'],
-                ['2016-03-25','2016-04-01'],
-                ['2016-06-27','2016-08-05'],
-                ['2016-10-03','2016-10-15'],
-                ['2018-02-12','2018-02-23'],
-                ['2018-05-19','2018-05-22'],
-                ['2018-07-02','2018-08-10'],
-                ['2018-10-08','2018-10-20'],
-                ['2018-12-22','2019-01-04']]
+               ['2016-03-25','2016-04-01'],
+               ['2016-06-27','2016-08-05'],
+               ['2016-10-03','2016-10-15'],
+               ['2017-02-13','2017-02-24'],
+               ['2017-04-13','2017-04-22'],
+               ['2017-05-25','2017-05-26'],
+               ['2017-06-26','2017-08-04'],
+               ['2017-10-02','2017-10-14'],
+               ['2017-10-30','2017-10-31'],
+               ['2017-12-23','2018-01-02'],
+               ['2018-02-12','2018-02-23'],
+               ['2018-03-29','2018-04-06'],
+               ['2018-05-19','2018-05-22'],
+               ['2018-07-02','2018-08-10'],
+               ['2018-10-08','2018-10-20'],
+               ['2018-12-22','2019-01-04']]
 
 
-# In[21]:
+# In[23]:
 
 
 def isschulferien(series):
@@ -281,16 +312,25 @@ def isschulferien(series):
         return 0
 
 
-# In[22]:
+# In[24]:
 
 
 ferienseries = pd.Series(data.index, name='Schulferien', index=data.index).apply(isschulferien)
 data['Schulferien'] = ferienseries
 
 
+# In[25]:
+
+
+# This is much faster!
+data['Schulferien'] = 0
+for sf in schulferien:
+    data.loc[sf[0]:sf[1]] = 1
+
+
 # ### Weihnachten
 
-# In[23]:
+# In[26]:
 
 
 def isweihnachten(series):
@@ -300,7 +340,7 @@ def isweihnachten(series):
         return 0
 
 
-# In[24]:
+# In[27]:
 
 
 weihnachtsseries = pd.Series(data.index, name='Weihnachten', index=data.index).apply(isweihnachten)
@@ -309,7 +349,7 @@ data['Weihnachten'] = weihnachtsseries
 
 # ### Check
 
-# In[25]:
+# In[28]:
 
 
 data.groupby([data.index.year, data.index.month, data.index.day]).first()
@@ -317,7 +357,7 @@ data.groupby([data.index.year, data.index.month, data.index.day]).first()
 
 # ### Featurevector
 
-# In[26]:
+# In[29]:
 
 
 featurevector = ['Wochentag','Uhrzeit','Schulferien','offenerSonntag','bisFeiertag','nachFeiertag','Weihnachten']
@@ -329,21 +369,27 @@ featurevector = ['Wochentag','Uhrzeit','Schulferien','offenerSonntag','bisFeiert
 # 
 # ## Train some Machine Learning Classifiers
 
-# In[27]:
+# In[30]:
 
 
 labels = data['Belegung'].values
 np.shape(labels)
 
 
-# In[28]:
+# In[31]:
 
 
 features = data[featurevector].values
 np.shape(features)
 
 
-# In[29]:
+# In[ ]:
+
+
+
+
+
+# In[32]:
 
 
 from sklearn.model_selection import train_test_split
@@ -351,7 +397,7 @@ from sklearn import preprocessing
 from sklearn.metrics import accuracy_score, confusion_matrix, r2_score
 
 
-# In[30]:
+# In[33]:
 
 
 from sklearn.tree import DecisionTreeRegressor
@@ -361,13 +407,13 @@ from sklearn.tree import DecisionTreeRegressor
 # 
 # To get an accuracy score, we need to split our dataset in a training and a test set. We train with the training set and test the model later with the part of the test set.
 
-# In[31]:
+# In[34]:
 
 
 features_train, features_test, labels_train, labels_test = train_test_split(features, labels, test_size=0.2, random_state=0)
 
 
-# In[32]:
+# In[35]:
 
 
 np.shape(labels_test)
@@ -377,13 +423,13 @@ np.shape(labels_test)
 
 # Because it is a regression (output of the prediction are integer) it might fit the data better than a classifier. So we test the the predicted labels with the test labels with the $R^2$ score (coefficient of determination).
 
-# In[33]:
+# In[36]:
 
 
 print('max_depth\tmin_samples_leaf\tR2_score (higher is better)')
 maxscore = 0.8
-for md in range(10, 30):
-    for mins in range(20, 50):
+for md in range(5, 25):
+    for mins in range(10, 30):
         classifier = DecisionTreeRegressor(max_depth=md, min_samples_leaf=mins).fit(features_train, labels_train)
         labels_predict = classifier.predict(features_test)
         #labels_rounded = [round(label/10.0)*10.0 for label in labels_predict]
@@ -397,7 +443,7 @@ for md in range(10, 30):
 
 # ## Model
 
-# In[34]:
+# In[37]:
 
 
 classifier = DecisionTreeRegressor(max_depth=10, min_samples_leaf=20)
@@ -408,7 +454,7 @@ classifier.fit(features_train, labels_train)
 # 
 # One can check for overfitting by just test the model with the training features. If the score is very high (and the score with the test features is low), it is likely, that the model is overfitted.
 
-# In[35]:
+# In[38]:
 
 
 # Let's check if we overfit. If, the accuracy with the training set is very high, with the test set very low.
@@ -422,13 +468,13 @@ if score>0.4:
 
 # ### What is the most important feature for the model
 
-# In[36]:
+# In[39]:
 
 
 importances = classifier.feature_importances_
 
 
-# In[37]:
+# In[40]:
 
 
 featureimportance = pd.DataFrame(index=featurevector, data=importances, columns=['Importance']).sort_values('Importance', ascending=False).plot(kind='bar', rot=20)
@@ -436,13 +482,13 @@ featureimportance = pd.DataFrame(index=featurevector, data=importances, columns=
 
 # Obviously it is the time of the day (`Minuten` since midnight), the calender week, the days until the next holiday (because people tend to go shopping if the weekend is long) and for sure the day of the week (because saturday is shopping day!).
 
-# In[38]:
+# In[41]:
 
 
 labels_predict = classifier.predict(features_test).astype('int')
 
 
-# In[39]:
+# In[42]:
 
 
 r2_score(labels_test, labels_predict)
@@ -450,25 +496,15 @@ r2_score(labels_test, labels_predict)
 
 # ### Let's take a look at the confusion matrix
 
-# In[40]:
+# In[43]:
 
 
-cm = confusion_matrix(labels_predict, labels_test)
-
-plt.matshow(cm, cmap=plt.cm.Spectral_r, interpolation='none')
-plt.colorbar(shrink=0.8)
-plt.ylabel(u'Wahre Belegung in %')
-plt.xlabel(u'Geschätzte Belegung in %')
-
-
-# In[76]:
-
-
+plt.figure(figsize=(12,12))
 plt.scatter(labels_predict, labels_test, alpha=0.01)
 plt.ylabel(u'Wahre Belegung in %')
 plt.xlabel(u'Geschätzte Belegung in %')
-plt.xlim([0, 110])
-plt.ylim([0, 110])
+plt.xlim([-10, 110])
+plt.ylim([-10, 110]);
 
 
 # As you can see, the confusion matrix looks pretty good. That's not perfect, but take into account, that we just have a few features for such a complex scenario like inner-city parking space occupation.
@@ -477,7 +513,7 @@ plt.ylim([0, 110])
 # 
 # Here we predict it for the whole dataset
 
-# In[41]:
+# In[44]:
 
 
 def predictBelegung(df):
@@ -488,42 +524,42 @@ def predictBelegung(df):
 
 # Fire it on the whole Dataset
 
-# In[42]:
+# In[45]:
 
 
 data['Vorhersage'] = data.apply(predictBelegung, axis=1)
 
 
-# In[43]:
+# In[ ]:
 
 
-data.head(5)
 
 
-# In[44]:
+
+# In[47]:
 
 
 data['Vorhersage'] = data['Vorhersage'].rolling(window=8).mean().shift(-4)
 
 
-# In[69]:
+# In[48]:
 
 
-plotbelegung(data[['Belegung', 'Vorhersage']], name, '2016-12-10', '2016-12-30')
+plotbelegung(data[['Belegung', 'Vorhersage']], name, '2017-07-10', '2017-07-30');
 
-
-# In[46]:
-
-
-data['Vorhersage']['2016-05-14'].plot()
-
-
-# # If we want to predict the future, let's create it
 
 # In[61]:
 
 
-future = pd.DataFrame(index=pd.date_range('2017-12-01', '2019-01-01', freq='15Min'))
+data['Vorhersage']['2018-07-16'].plot()
+
+
+# # If we want to predict the future, let's create it
+
+# In[50]:
+
+
+future = pd.DataFrame(index=pd.date_range('2018-12-30', '2020-01-01', freq='15Min'))
 future.index.name = 'date'
 future['Wochentag'] = future.index.dayofweek
 #future['KW'] = future.index.week
@@ -542,38 +578,38 @@ future['Weihnachten'] = weihnachtsseries
 
 # ### And predict the occupancy of the parking-space `Centrum-Galerie` with the future features
 
-# In[62]:
+# In[51]:
 
 
 future['Vorhersage'] = future.apply(predictBelegung, axis=1)
 
 
-# In[63]:
+# In[52]:
 
 
 future['Vorhersage'] = future['Vorhersage'].rolling(window=8).mean().shift(-4)
 
 
-# In[64]:
+# In[53]:
 
 
 future.head()
 
 
-# In[65]:
+# In[63]:
 
 
-plotbelegung(future['Vorhersage'], name, '2017-12-1', '2017-12-31')
-plt.savefig('%s-Belegung-Vorhersage-2018.png' % name, bbox_inches='tight', dpi=150)
+plotbelegung(future['Vorhersage'], name, '2019-12-1', '2019-12-31')
+plt.savefig('%s-Belegung-Vorhersage-2019.png' % name, bbox_inches='tight', dpi=150)
 
 
 # ### Save as .csv
 
-# In[68]:
+# In[55]:
 
 
 future.dropna(inplace=True)
-future['Vorhersage'].to_csv('%s-Belegung-Vorhersage-2018-15min.csv' % name,
+future['Vorhersage'].to_csv('%s-Belegung-Vorhersage-2019-15min.csv' % name,
                             header=False,
                             float_format='%i',
                             date_format ='%Y-%m-%dT%H:%M:%S')
@@ -586,7 +622,7 @@ future['Vorhersage'].to_csv('%s-Belegung-Vorhersage-2018-15min.csv' % name,
 # `with open('classifier.pkl', 'rb') as fid:
 #     classifier = pickle.load(fid)`
 
-# In[67]:
+# In[56]:
 
 
 import pickle

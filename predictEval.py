@@ -1,21 +1,23 @@
-
+#!/usr/bin/env python#!/usr/bin/python
 # coding: utf-8
 
 # # Evaluation of the predicted Occupation
 # 
 # we use the exported `.csv` of our `predictiveParking` and compare it with the true values.
 
-# In[81]:
+# In[1]:
+
 
 #!rm -rf parken_dump.csv
 #!wget http://ubahn.draco.uberspace.de/opendata/dump/parken_dump.csv
 
 
-# In[82]:
+# In[2]:
+
 
 import pandas as pd
 
-get_ipython().magic(u'matplotlib inline')
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 
@@ -24,7 +26,8 @@ sns.set_style('whitegrid')
 sns.set_context('talk')
 
 
-# In[83]:
+# In[3]:
+
 
 # function to plot timeseries with weekend
 def plotbelegung(df, which, fromdate, todate):
@@ -52,22 +55,28 @@ def plotbelegung(df, which, fromdate, todate):
     return plt
 
 
-# In[84]:
-
-data = pd.read_csv('parken_dump.csv', encoding='latin1')
+# In[36]:
 
 
-# In[85]:
-
-data['Belegung'] = 100.0-data['free']/data['count']*100.0
+data = pd.read_csv('dresdencentrumgalerie-2016.csv', names=['Datum','free'], index_col='Datum', parse_dates=True)
 
 
-# In[86]:
-
-ppDD = data.pivot(index='time', columns='name', values='Belegung')
+# In[37]:
 
 
-# In[87]:
+data['Belegung'] = 100.0-(data.free/950.0*100.0)
+data['Belegung'] = data['Belegung'].astype(int)
+data.drop('free', axis=1, inplace=True)
+
+
+# In[38]:
+
+
+ppDD = data
+
+
+# In[32]:
+
 
 # Define index and names
 ppDD.index = pd.DatetimeIndex(ppDD.index)
@@ -79,12 +88,14 @@ print('Daten von %s/%s bis %s/%s' % (ppDD.index[0].month, ppDD.index[0].year, pp
 
 # ### Machine Learning Model was trained with data until 2015-04-13, so we evaluate with the days after
 
-# In[88]:
+# In[33]:
+
 
 ppDD = ppDD['2015-04-14':]
 
 
-# In[89]:
+# In[34]:
+
 
 # format the percent without digits
 ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
@@ -93,47 +104,55 @@ ppDD = ppDD.applymap(lambda x: float('%.0f' % x))
 ppDD = ppDD.applymap(lambda x: min(max(x, 0.0), 100.0))
 
 
-# In[90]:
-
-centrumGalerie = ppDD[['Centrum-Galerie']].dropna()
+# In[40]:
 
 
-# In[91]:
+centrumGalerie = ppDD[['Belegung']].dropna()
+
+
+# In[41]:
+
 
 centrumGalerie.index = [idx.replace(second=0) for idx in centrumGalerie.index]
 
 
-# In[92]:
+# In[42]:
+
 
 centrumGalerie.head()
 
 
 # ### Read the predicted data
 
-# In[93]:
+# In[43]:
 
-prediction = pd.read_csv('Centrum-Galerie-Belegung-Vorhersage-2015-30min.csv', index_col=[0], skiprows=1, parse_dates=True, names=['Centrum-Galerie (Predicted)'])
+
+prediction = pd.read_csv('Centrum Galerie-Belegung-Vorhersage-2019-15min.csv', index_col=[0], skiprows=1, parse_dates=True, names=['Centrum-Galerie (Predicted)'])
 
 
 # ### Join with the real data
 
-# In[94]:
+# In[44]:
+
 
 compare = centrumGalerie.join(prediction)
 compare.dropna(how='any', inplace=True)
 
 
-# In[95]:
+# In[45]:
+
 
 compare.head(5)
 
 
-# In[96]:
+# In[46]:
+
 
 plotbelegung(compare, ['Centrum-Galerie','Centrum-Galerie (Predicted)'],'','')
 
 
 # In[ ]:
+
 
 
 
