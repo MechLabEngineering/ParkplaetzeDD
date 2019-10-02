@@ -383,12 +383,6 @@ features = data[featurevector].values
 np.shape(features)
 
 
-# In[ ]:
-
-
-
-
-
 # In[32]:
 
 
@@ -530,33 +524,27 @@ def predictBelegung(df):
 data['Vorhersage'] = data.apply(predictBelegung, axis=1)
 
 
-# In[ ]:
-
-
-
-
-
-# In[47]:
+# In[46]:
 
 
 data['Vorhersage'] = data['Vorhersage'].rolling(window=8).mean().shift(-4)
 
 
+# In[47]:
+
+
+data.head()
+
+
 # In[48]:
 
 
-plotbelegung(data[['Belegung', 'Vorhersage']], name, '2017-07-10', '2017-07-30');
-
-
-# In[61]:
-
-
-data['Vorhersage']['2018-07-16'].plot()
+plotbelegung(data[['Belegung', 'Vorhersage']], name, '2018-04-09', '2018-04-29');
 
 
 # # If we want to predict the future, let's create it
 
-# In[50]:
+# In[49]:
 
 
 future = pd.DataFrame(index=pd.date_range('2018-12-30', '2020-01-01', freq='15Min'))
@@ -578,25 +566,25 @@ future['Weihnachten'] = weihnachtsseries
 
 # ### And predict the occupancy of the parking-space `Centrum-Galerie` with the future features
 
-# In[51]:
+# In[50]:
 
 
 future['Vorhersage'] = future.apply(predictBelegung, axis=1)
 
 
-# In[52]:
+# In[51]:
 
 
 future['Vorhersage'] = future['Vorhersage'].rolling(window=8).mean().shift(-4)
 
 
+# In[52]:
+
+
+future.tail()
+
+
 # In[53]:
-
-
-future.head()
-
-
-# In[63]:
 
 
 plotbelegung(future['Vorhersage'], name, '2019-12-1', '2019-12-31')
@@ -605,7 +593,7 @@ plt.savefig('%s-Belegung-Vorhersage-2019.png' % name, bbox_inches='tight', dpi=1
 
 # ### Save as .csv
 
-# In[55]:
+# In[54]:
 
 
 future.dropna(inplace=True)
@@ -622,7 +610,7 @@ future['Vorhersage'].to_csv('%s-Belegung-Vorhersage-2019-15min.csv' % name,
 # `with open('classifier.pkl', 'rb') as fid:
 #     classifier = pickle.load(fid)`
 
-# In[56]:
+# In[55]:
 
 
 import pickle
@@ -630,4 +618,6 @@ with open('./Classifier/DecisionTreeRegressor-%s.pkl' % name, 'wb') as fid:
     pickle.dump(classifier, fid)  
 
 
+# This is released under the `CC-BY 2.0` License, which means you can use it but have to mention the original author! 
+# 
 # Questions: [@Balzer82](https://twitter.com/Balzer82)
